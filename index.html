@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Отсчёт до 9 июля</title>
+<style>
+  :root{
+    --bg: #2b0f1a;
+    --amber: #ff8fa3;
+    --gold: #f3c98b;
+    --ink: #fff2f5;
+    --muted: #e0aebb;
+    --line: #4a1f2c;
+    --face: #3a1420;
+    --error: #ff8ba0;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0; padding: 0; min-height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+  }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px;
+    background-image:
+      radial-gradient(circle at 50% 0%, rgba(255,143,163,0.14), transparent 55%),
+      radial-gradient(circle at 15% 85%, rgba(243,201,139,0.08), transparent 50%);
+  }
+
+  .screen { width: 100%; }
+  .screen.hide { display: none; }
+
+  .panel {
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .eyebrow {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .eyebrow span { color: var(--amber); font-style: normal; }
+
+  .target-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 28px;
+    letter-spacing: 0.04em;
+  }
+
+  /* --- Clock face --- */
+  .clock-wrap {
+    position: relative;
+    width: min(78vw, 340px);
+    height: min(78vw, 340px);
+    margin: 0 auto 30px;
+  }
+
+  svg { width: 100%; height: 100%; overflow: visible; }
+
+  .face-ring { fill: var(--face); stroke: var(--line); stroke-width: 1.5; }
+
+  .progress-arc {
+    fill: none;
+    stroke: var(--amber);
+    stroke-width: 4;
+    stroke-linecap: round;
+    transform: rotate(-90deg);
+    transform-origin: 150px 150px;
+    transition: stroke-dashoffset 0.3s linear;
+  }
+
+  .tick { stroke: var(--muted); stroke-width: 1.5; }
+  .tick.major { stroke: var(--ink); stroke-width: 2.5; }
+
+  .hand { stroke-linecap: round; transform-origin: 150px 150px; }
+  .hand.hour { stroke: var(--ink); stroke-width: 5; }
+  .hand.minute { stroke: var(--ink); stroke-width: 3.5; }
+  .hand.second { stroke: var(--amber); stroke-width: 1.5; }
+
+  .center-dot { fill: var(--amber); }
+
+  .center-text {
+    font-family: 'JetBrains Mono', monospace;
+    fill: var(--muted);
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  /* --- Digital countdown --- */
+  .clock {
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: clamp(4px, 1.6vw, 12px);
+    margin-bottom: 26px;
+  }
+  .unit { display: flex; flex-direction: column; align-items: center; min-width: 56px; }
+  .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 800;
+    font-size: clamp(26px, 7vw, 44px);
+    line-height: 1;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .label {
+    margin-top: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .sep {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: clamp(18px, 5vw, 30px);
+    color: var(--line);
+  }
+
+  .status-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    border-top: 1px solid var(--line);
+    padding-top: 18px;
+  }
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--amber);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(255,179,71,0.45); }
+    70%  { box-shadow: 0 0 0 8px rgba(255,179,71,0); }
+    100% { box-shadow: 0 0 0 0 rgba(255,179,71,0); }
+  }
+
+  .done {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(22px, 6vw, 34px);
+    font-weight: 800;
+    color: var(--amber);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dot { animation: none; }
+    .progress-arc { transition: none; }
+  }
+
+  .typewriter-wrap {
+    margin-top: 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(20px, 5vw, 32px);
+    font-weight: 700;
+    color: var(--amber);
+    letter-spacing: 0.02em;
+  }
+
+  .caret {
+    display: inline-block;
+    animation: blink 1s step-end infinite;
+    color: var(--amber);
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  .preview-btn {
+    display: inline-block;
+    margin-top: 30px;
+    padding: 12px 26px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink);
+    background: transparent;
+    border: 1.5px solid var(--line);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+  .preview-btn:hover { border-color: var(--amber); color: var(--amber); }
+
+  /* --- Preview / password screen --- */
+  .subtitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 32px;
+  }
+
+  .lock-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 340px;
+    margin: 0 auto;
+  }
+
+  input[type="password"] {
+    width: 100%;
+    padding: 14px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    letter-spacing: 0.3em;
+    text-align: center;
+    color: var(--ink);
+    background: var(--face);
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.2s ease;
+  }
+  input[type="password"]:focus { border-color: var(--amber); }
+  input[type="password"]::placeholder { color: var(--muted); letter-spacing: 0.1em; }
+
+  .submit-btn {
+    padding: 13px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--bg);
+    background: var(--amber);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: filter 0.2s ease, transform 0.1s ease;
+  }
+  .submit-btn:hover { filter: brightness(1.08); }
+  .submit-btn:active { transform: scale(0.98); }
+
+  .message {
+    margin-top: 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    min-height: 20px;
+  }
+  .message.error { color: var(--error); animation: shake 0.35s ease; }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
+  .back-link {
+    display: inline-block;
+    margin-top: 26px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    text-decoration: none;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    background: none;
+    border: none;
+  }
+  .back-link:hover { color: var(--ink); }
+
+  .unlocked-text {
+    font-family: 'Great Vibes', cursive;
+    font-size: clamp(34px, 8vw, 56px);
+    font-weight: 400;
+    color: var(--amber);
+    letter-spacing: 0.02em;
+    margin-bottom: 10px;
+  }
+
+  .hide { display: none; }
+
+  /* --- Cute floating background stickers --- */
+  .bg-stickers {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+  }
+  .sticker {
+    position: absolute;
+    width: 46px;
+    height: 46px;
+    opacity: 0.18;
+    animation: float 7s ease-in-out infinite;
+    user-select: none;
+  }
+  .sticker img { width: 100%; height: 100%; object-fit: contain; filter: brightness(0) invert(1); }
+  .sticker.s1 { top: 8%;  left: 6%;  width: 52px; height: 52px; animation-delay: 0s; }
+  .sticker.s2 { top: 18%; right: 8%; width: 38px; height: 38px; animation-delay: 1.2s; }
+  .sticker.s3 { bottom: 14%; left: 10%; width: 34px; height: 34px; animation-delay: 2.4s; }
+  .sticker.s4 { bottom: 22%; right: 12%; width: 44px; height: 44px; animation-delay: 0.6s; }
+  .sticker.s5 { top: 46%; left: 3%; width: 28px; height: 28px; animation-delay: 1.8s; }
+  .sticker.s6 { top: 40%; right: 4%; width: 30px; height: 30px; animation-delay: 3s; }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-14px) rotate(6deg); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sticker { animation: none; }
+  }
+
+  .screen, .panel { position: relative; z-index: 1; }
+
+  /* --- Final reveal with sticker behind text --- */
+  .reveal-wrap {
+    position: relative;
+    margin-top: 22px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 120px;
+    padding: 20px 4px;
+  }
+  .reveal-sticker {
+    position: absolute;
+    width: clamp(90px, 30vw, 170px);
+    height: clamp(90px, 30vw, 170px);
+    opacity: 0.22;
+    z-index: 0;
+    pointer-events: none;
+    animation: float 6s ease-in-out infinite;
+  }
+  .reveal-sticker img { width: 100%; height: 100%; object-fit: contain; filter: brightness(0) invert(1); }
+  .reveal-text {
+    position: relative;
+    z-index: 1;
+    font-family: 'Great Vibes', cursive;
+    font-size: clamp(34px, 8vw, 56px);
+    font-weight: 400;
+    color: var(--amber);
+    letter-spacing: 0.02em;
+  }
+
+  .love-letter {
+    position: relative;
+    z-index: 1;
+    font-family: 'Caveat', cursive;1
+    font-style: italic;
+    font-size: clamp(20px, 4.8vw, 28px);
+    line-height: 1.8;
+    color: var(--ink);
+    text-align: left;
+    white-space: pre-wrap;
+    max-width: 480px;
+    margin: 0 auto;
+    cursor: pointer;
+  }
+  .love-letter .caret {
+    display: inline-block;
+    width: 2px;
+    margin-left: 1px;
+    color: var(--amber);
+    animation: blink 0.9s step-end infinite;
+    font-style: normal;
+    font-weight: 700;
+  }
+
+  /* --- Nav buttons on reveal screen --- */
+  .nav-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 30px;
+    flex-wrap: wrap;
+  }
+  .next-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--bg);
+    background: var(--amber);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: filter 0.2s ease, transform 0.1s ease;
+  }
+  .next-btn:hover { filter: brightness(1.08); }
+  .next-btn:active { transform: scale(0.98); }
+  .next-btn .arrow { font-size: 15px; transition: transform 0.2s ease; }
+  .next-btn:hover .arrow { transform: translateX(3px); }
+
+  .preview-badge {
+    display: inline-block;
+    margin-bottom: 14px;
+    padding: 5px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    border-radius: 30px;
+  }
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap" rel="stylesheet">
+  .sticker.s7{
+    top:55%;
+    left:25%;
+}
+
+.sticker.s8{
+    top:75%;
+    right:25%;
+}
+
+.sticker.s9{
+    top:15%;
+    left:40%;
+}
+
+.sticker.s10{
+    bottom:8%;
+    left:55%;
+}
+</style>
+</head>
+<body>
+
+  <div class="bg-stickers" aria-hidden="true">
+    <span class="sticker s1"><img src="love(1).png"></span>
+<span class="sticker s2"><img src="шарики.png"></span>
+<span class="sticker s3"><img src="торт2.png"></span>
+<span class="sticker s4"><img src="love(1).png"></span>
+<span class="sticker s5"><img src="шарики.png"></span>
+<span class="sticker s6"><img src="торт2.png"></span>
+
+<span class="sticker s7"><img src="love(1).png"></span>
+<span class="sticker s8"><img src="love(1).png"></span>
+<span class="sticker s9"><img src="шарики.png"></span>
+<span class="sticker s10"><img src="торт2.png"></span>
+  </div>
+
+  <!-- ============ SCREEN 1: TIMER ============ -->
+  <div class="screen" id="screen-timer">
+    <div class="panel">
+      <div class="eyebrow">Отсчёт до <span>9 июля</span></div>
+      <div class="target-date" id="target-date-label">9 июля 2026, 00:00</div>
+
+      <div class="clock-wrap">
+        <svg viewBox="0 0 300 300">
+          <circle class="face-ring" cx="150" cy="150" r="140"></circle>
+          <g id="ticks"></g>
+          <circle class="progress-arc" id="progress-arc" cx="150" cy="150" r="140"
+                  stroke-dasharray="879.6" stroke-dashoffset="879.6"></circle>
+          <line class="hand hour" id="hand-hour" x1="150" y1="150" x2="150" y2="95"></line>
+          <line class="hand minute" id="hand-minute" x1="150" y1="150" x2="150" y2="65"></line>
+          <line class="hand second" id="hand-second" x1="150" y1="150" x2="150" y2="55"></line>
+          <circle class="center-dot" cx="150" cy="150" r="5"></circle>
+          <text class="center-text" x="150" y="200" text-anchor="middle">ждём</text>
+        </svg>
+      </div>
+
+      <div class="clock">
+        <div class="unit"><div class="num" id="d-days">00</div><div class="label">дней</div></div>
+        <div class="sep">:</div>
+        <div class="unit"><div class="num" id="d-hours">00</div><div class="label">часов</div></div>
+        <div class="sep">:</div>
+        <div class="unit"><div class="num" id="d-mins">00</div><div class="label">минут</div></div>
+        <div class="sep">:</div>
+        <div class="unit"><div class="num" id="d-secs">00</div><div class="label">секунд</div></div>
+      </div>
+
+      <div class="status-line">
+        <span class="dot"></span>
+        <span id="status-text">отсчёт идёт</span>
+      </div>
+
+      <button class="preview-btn" id="btn-preview">Предпросмотр</button>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 2: PASSWORD ============ -->
+  <div class="screen hide" id="screen-password">
+    <div class="panel">
+      <div class="eyebrow">Предпросмотр</div>
+      <div class="subtitle">Введите пароль, чтобы посмотреть заранее</div>
+
+      <div class="lock-form" id="password-form">
+        <input type="password" id="password-input" placeholder="••••" inputmode="numeric" autocomplete="off">
+        <button type="button" class="submit-btn" id="btn-submit-password">Открыть</button>
+      </div>
+
+      <div class="message" id="password-message"></div>
+
+      <button class="back-link" id="btn-back-to-timer-from-pw">← вернуться к таймеру</button>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 3: REVEAL ============ -->
+  <div class="screen hide" id="screen-reveal">
+    <div class="panel">
+      <div class="preview-badge hide" id="preview-badge">режим предпросмотра</div>
+      <div class="reveal-wrap">
+        <span class="reveal-sticker"><img src="love(1).png"></span>
+        <div class="love-letter" id="love-letter"><span id="love-letter-text"></span><span class="caret" id="love-letter-caret">|</span></div>
+      </div>
+
+      <div class="nav-row">
+        <button class="back-link" id="btn-back-to-timer">← вернуться к таймеру</button>
+        <a class="back-link" id="btn-next" href="qq.html">дальше →</a>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  var TARGET = new Date(2026, 6, 9, 0, 0, 0); // 9 июля 2026, 00:00 (локальное время)
+  var PASSWORD = "1307";
+
+  var screenTimer = document.getElementById('screen-timer');
+  var screenPassword = document.getElementById('screen-password');
+  var screenReveal = document.getElementById('screen-reveal');
+  var previewBadge = document.getElementById('preview-badge');
+
+  function showScreen(el){
+    [screenTimer, screenPassword, screenReveal].forEach(function(s){
+      s.classList.add('hide');
+    });
+    el.classList.remove('hide');
+  }
+
+  // --- love letter typewriter ---
+  var LOVE_TEXT = "Моя самая любимая, самая красивая и самая дорогая девочка, с самого утра хочу поздравить тебя с этим замечательным днём. Сегодня родился человек, который сделал мою жизнь намного счастливее. Я безумно благодарен судьбе за то, что однажды она подарила мне тебя. Ты каждый день даришь мне улыбку, поддержку, тепло и столько счастливых моментов, которые я никогда не забуду.\n\nЯ очень хочу, чтобы ты всегда улыбалась так же искренне, как сейчас, чтобы все твои мечты и цели обязательно исполнялись, а на твоём пути встречались только добрые люди и счастливые события. Пусть каждый новый день приносит тебе радость, вдохновение и поводы для улыбок. Ты заслуживаешь всего самого прекрасного, потому что ты невероятный человек с добрым сердцем, и я очень счастлив, что именно ты рядом со мной.\n\nСпасибо тебе за каждую минуту, проведённую вместе, за твою заботу, терпение, понимание и любовь. Я обещаю всегда быть рядом, поддерживать тебя в трудные моменты, радоваться твоим успехам и делать всё возможное, чтобы ты чувствовала себя любимой и счастливой. Мне хочется, чтобы этот день стал началом ещё одного прекрасного года твоей жизни, наполненного яркими эмоциями, незабываемыми впечатлениями и исполнением самых заветных желаний.\n\nС днём рождения, моя любимая кисонька! Пусть твоя жизнь будет полна красок, люблю тебя. ❤️";
+
+  var loveLetterText = document.getElementById('love-letter-text');
+  var loveLetterCaret = document.getElementById('love-letter-caret');
+  var loveLetterEl = document.getElementById('love-letter');
+  var typingTimer = null;
+  var typingDone = false;
+
+  function typeLoveLetter(){
+    if (typingTimer) clearInterval(typingTimer);
+    typingDone = false;
+    loveLetterText.textContent = '';
+    loveLetterCaret.style.display = 'inline-block';
+    var i = 0;
+    typingTimer = setInterval(function(){
+      i += 1; // two characters per tick for a natural but not too slow pace
+      if (i >= LOVE_TEXT.length) {
+        i = LOVE_TEXT.length;
+        loveLetterText.textContent = LOVE_TEXT.slice(0, i);
+        clearInterval(typingTimer);
+        typingTimer = null;
+        typingDone = true;
+        loveLetterCaret.style.display = 'none';
+        return;
+      }
+      loveLetterText.textContent = LOVE_TEXT.slice(0, i);
+    }, 60);
+  }
+
+  // tap the letter to instantly reveal the full text
+  loveLetterEl.addEventListener('click', function(){
+    if (!typingDone) {
+      if (typingTimer) clearInterval(typingTimer);
+      typingTimer = null;
+      typingDone = true;
+      loveLetterText.textContent = LOVE_TEXT;
+      loveLetterCaret.style.display = 'none';
+    }
+  });
+
+  // --- build tick marks ---
+  var ticksGroup = document.getElementById('ticks');
+  for (var i = 0; i < 60; i++) {
+    var angle = (i / 60) * 2 * Math.PI - Math.PI / 2;
+    var isMajor = i % 5 === 0;
+    var rOuter = 140;
+    var rInner = isMajor ? 124 : 130;
+    var x1 = 150 + rOuter * Math.cos(angle);
+    var y1 = 150 + rOuter * Math.sin(angle);
+    var x2 = 150 + rInner * Math.cos(angle);
+    var y2 = 150 + rInner * Math.sin(angle);
+    var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', x1.toFixed(2));
+    line.setAttribute('y1', y1.toFixed(2));
+    line.setAttribute('x2', x2.toFixed(2));
+    line.setAttribute('y2', y2.toFixed(2));
+    line.setAttribute('class', 'tick' + (isMajor ? ' major' : ''));
+    ticksGroup.appendChild(line);
+  }
+
+  var handHour = document.getElementById('hand-hour');
+  var handMinute = document.getElementById('hand-minute');
+  var handSecond = document.getElementById('hand-second');
+  var progressArc = document.getElementById('progress-arc');
+  var CIRC = 2 * Math.PI * 140;
+
+  var dDays = document.getElementById('d-days');
+  var dHours = document.getElementById('d-hours');
+  var dMins = document.getElementById('d-mins');
+  var dSecs = document.getElementById('d-secs');
+  var statusText = document.getElementById('status-text');
+
+  function pad(n){ return n < 10 ? '0' + n : '' + n; }
+
+  var unlocked = false;
+
+  function tick(){
+    var now = new Date();
+
+    // analog hands follow real current time (decorative)
+    var h = now.getHours() % 12;
+    var m = now.getMinutes();
+    var s = now.getSeconds();
+    var hourAngle = (h + m / 60) / 12 * 360;
+    var minuteAngle = (m + s / 60) / 60 * 360;
+    var secondAngle = s / 60 * 360;
+    handHour.style.transform = 'rotate(' + hourAngle + 'deg)';
+    handMinute.style.transform = 'rotate(' + minuteAngle + 'deg)';
+    handSecond.style.transform = 'rotate(' + secondAngle + 'deg)';
+
+    // progress arc: fraction of current minute elapsed (gentle pulse)
+    var frac = s / 60;
+    progressArc.setAttribute('stroke-dasharray', CIRC.toFixed(1));
+    progressArc.setAttribute('stroke-dashoffset', (CIRC * (1 - frac)).toFixed(1));
+
+    var diff = TARGET.getTime() - now.getTime();
+
+    if (diff <= 0) {
+      dDays.textContent = '00';
+      dHours.textContent = '00';
+      dMins.textContent = '00';
+      dSecs.textContent = '00';
+      statusText.textContent = 'время пришло';
+      if (!unlocked) {
+        unlocked = true;
+        previewBadge.classList.add('hide');
+        showScreen(screenReveal);
+        typeLoveLetter();
+      }
+      return;
+    }
+
+    var totalSeconds = Math.floor(diff / 1000);
+    var days = Math.floor(totalSeconds / 86400);
+    var hours = Math.floor((totalSeconds % 86400) / 3600);
+    var mins = Math.floor((totalSeconds % 3600) / 60);
+    var secs = totalSeconds % 60;
+
+    dDays.textContent = pad(days);
+    dHours.textContent = pad(hours);
+    dMins.textContent = pad(mins);
+    dSecs.textContent = pad(secs);
+    statusText.textContent = 'отсчёт идёт';
+  }
+
+  tick();
+  setInterval(tick, 1000);
+
+  // --- preview button ---
+  document.getElementById('btn-preview').addEventListener('click', function(){
+    document.getElementById('password-input').value = '';
+    document.getElementById('password-message').textContent = '';
+    document.getElementById('password-message').className = 'message';
+    showScreen(screenPassword);
+    document.getElementById('password-input').focus();
+  });
+
+  document.getElementById('btn-back-to-timer-from-pw').addEventListener('click', function(){
+    showScreen(screenTimer);
+  });
+
+  document.getElementById('btn-back-to-timer').addEventListener('click', function(){
+    showScreen(screenTimer);
+  });
+
+  function checkPassword(){
+    var input = document.getElementById('password-input');
+    var val = (input.value || '').trim();
+    var msg = document.getElementById('password-message');
+    if (val === PASSWORD) {
+      msg.textContent = '';
+      msg.className = 'message';
+      if (!unlocked) {
+        previewBadge.classList.remove('hide');
+      }
+      showScreen(screenReveal);
+      typeLoveLetter();
+    } else {
+      msg.textContent = 'неверный пароль';
+      msg.className = 'message error';
+      input.focus();
+    }
+  }
+
+  document.getElementById('btn-submit-password').addEventListener('click', checkPassword);
+
+  document.getElementById('password-input').addEventListener('keydown', function(e){
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      checkPassword();
+    }
+  });
+})();
+</script>
+</body>
+</html>
